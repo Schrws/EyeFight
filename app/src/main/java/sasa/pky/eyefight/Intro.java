@@ -10,5 +10,6 @@ public class Intro extends AppCompatActivity {
     @Override
     public void onCreate(Bundle bundle) {
         super.onCreate(bundle);
+        setContentView(R.layout.intro);
     }
 }
