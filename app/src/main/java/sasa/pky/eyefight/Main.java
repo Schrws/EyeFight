@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.support.v7.widget.SwitchCompat;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -25,6 +26,8 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.IOException;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Main extends AppCompatActivity {
@@ -33,11 +36,18 @@ public class Main extends AppCompatActivity {
     private FaceDetector mFaceDetector;
     private CameraSource mCameraSource;
     private final AtomicBoolean updating = new AtomicBoolean(false);
+    private TextView tv;
+    private Timer timer;
+    String[] tm = {"눈을 뜨고 있으면 시작합니다", "게임 진행 중...", "게임 종료"};
+    int mode = 0;
+    boolean eyeOpened = false;
+
+    int time = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.main);
 
         // check that the play services are installed
         isPlayServicesAvailable(this, 69);
@@ -50,6 +60,11 @@ public class Main extends AppCompatActivity {
             // ...else request the camera permission
             requestCameraPermission();
         }
+
+        timer = new Timer();
+        tv = (TextView) findViewById(R.id.countView);
+
+        tv.setText("눈을 뜨고 있으면 시작합니다.");
     }
 
     /**
@@ -150,10 +165,32 @@ public class Main extends AppCompatActivity {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEyeClosed(ClosedEvent e) {
+        eyeOpened = false;
+        if (mode == 1) {
+            timer.cancel();
+            mode++;
+            tv.setText("게임 종료 - " + ((double)time) / 1000 + "초");
+        }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEyeOpened(OpenedEvent e) {
+        eyeOpened = true;
+        if (mode == 0) {
+            mode++;
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    time += 100;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            tv.setText("시간 : " + ((double)time) / 1000);
+                        }
+                    });
+                }
+            }, 100, 100);
+        }
     }
 
     private boolean catchUpdatingLock() {
